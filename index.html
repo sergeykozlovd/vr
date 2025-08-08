@@ -1,32 +1,32 @@
 <!DOCTYPE html>
 <html>
+<!-- Подключаем скрипты A-Frame и AR.js -->
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-<head>
-    <meta charset="utf-8">
-    <title>VR-пример с перемещением</title>
-    <meta name="description" content="VR-пример с перемещением на A-Frame">
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
-</head>
+<body style="margin : 0px; overflow: hidden;">
+    <!--
+      В a-scene мы встраиваем систему AR.js.
+      vr-mode-ui="enabled: false;" отключает кнопку входа в VR, так как это AR-сцена.
+    -->
+    <a-scene embedded arjs>
 
-<body>
-    <a-scene>
-        <!-- Объекты в сцене -->
-        <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
-        <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
-        <a-cylinder position="1 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
-        <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
-        <a-sky color="#ECECEC"></a-sky>
+        <!-- Создаем 3D-объект. В нашем случае это куб. -->
+        <a-box position='0 0.5 0' material='color: cyan;'></a-box>
 
-        <!-- Обертка для камеры (Camera Rig) с контроллером движения -->
-        <a-entity id="cameraRig" movement-controls="speed: 0.15;">
-            <!-- Камера с курсором внутри -->
-            <a-entity camera position="0 1.6 0" look-controls>
-                <a-cursor></a-cursor>
-            </a-entity>
-        </a-entity>
+        <!-- 
+        Создаем маркер. AR.js будет искать этот маркер.
+        Как только он его найдет, все дочерние элементы (в нашем случае куб)
+        будут отображены на его месте.
+        preset='hiro' использует встроенный стандартный маркер.
+      -->
+        <a-marker preset='hiro'>
+            <!-- Вы можете поместить объекты прямо сюда, тогда они будут привязаны к маркеру -->
+        </a-marker>
 
+        <!-- Добавляем камеру для AR -->
+        <a-entity camera></a-entity>
     </a-scene>
 </body>
 
-</html>
+</html>```
