@@ -1,73 +1,195 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 
 <head>
     <meta charset="UTF-8">
-    <title>VR Head Tracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Демо датчиков: Акселерометр и Гироскоп</title>
     <style>
         body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            overflow: hidden;
+            touch-action: none;
+            /* Отключает масштабирование по двойному тапу */
         }
 
-        canvas {
-            display: block;
+        #container {
+            width: 90vw;
+            height: 60vh;
+            border: 2px solid #333;
+            position: relative;
+            background-color: #fff;
+            overflow: hidden;
+            /* Скрывает все, что выходит за границы */
+        }
+
+        #box {
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            position: absolute;
+            left: 50%;
+            /* Начальная позиция в центре */
+            top: 50%;
+            transform: translate(-50%, -50%);
+            /* Центрирование объекта */
+        }
+
+        #info {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #permissionButton {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: 1px solid #333;
         }
     </style>
 </head>
 
 <body>
-    <script type="module">
-        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-        import { VRButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js';
 
-        let scene = new THREE.Scene();
-        let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        let renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
-        document.body.appendChild(VRButton.createButton(renderer));
+    <h1>Демо датчиков телефона</h1>
+    <div id="container">
+        <div id="box"></div>
+    </div>
+    <div id="info">
+        <p>Нажмите кнопку, чтобы активировать датчики.</p>
+        <div id="accel-data">Акселерометр (X, Y): 0, 0</div>
+        <div id="gyro-data">Гироскоп (Z): 0</div>
+    </div>
 
-        // тестовые объекты
-        let geometry = new THREE.BoxGeometry();
-        let material = new THREE.MeshNormalMaterial();
-        let cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
+    <button id="permissionButton">Активировать датчики</button>
 
-        camera.position.z = 3;
+    <script>
+        const box = document.getElementById('box');
+        const container = document.getElementById('container');
+        const permissionButton = document.getElementById('permissionButton');
+        const info = document.getElementById('info');
+        const accelDataElem = document.getElementById('accel-data');
+        const gyroDataElem = document.getElementById('gyro-data');
 
-        function animate() {
-            renderer.setAnimationLoop(() => {
-                cube.rotation.x += 0.01;
-                cube.rotation.y += 0.01;
-                renderer.render(scene, camera);
-            });
+        let currentRotation = 0;
+
+        // Функция для запроса разрешений и запуска датчиков
+        function activateSensors() {
+            // Скрываем кнопку после нажатия
+            permissionButton.style.display = 'none';
+            info.innerHTML = "<p>Наклоняйте и вращайте телефон.</p>";
+
+            // --- АКСЕЛЕРОМЕТР ---
+            // Отвечает за перемещение
+            if ('Accelerometer' in window) {
+                const accelerometer = new Accelerometer({ frequency: 60 });
+
+                accelerometer.addEventListener('error', event => {
+                    info.innerHTML = `Ошибка акселерометра: ${event.error.name}`;
+                });
+
+                accelerometer.addEventListener('reading', () => {
+                    // Получаем текущие координаты квадрата
+                    let left = parseFloat(box.style.left);
+                    let top = parseFloat(box.style.top);
+
+                    // Изменяем координаты на основе данных акселерометра.
+                    // Множитель (-1) инвертирует направление для более интуитивного управления.
+                    // Множитель (2) увеличивает чувствительность.
+                    let newLeft = left - accelerometer.x * 2;
+                    let newTop = top + accelerometer.y * 2;
+
+                    // Ограничиваем движение границами контейнера
+                    const containerRect = container.getBoundingClientRect();
+                    const boxRect = box.getBoundingClientRect();
+
+                    if (newLeft < 0) newLeft = 0;
+                    if (newTop < 0) newTop = 0;
+                    if (newLeft > containerRect.width - boxRect.width) {
+                        newLeft = containerRect.width - boxRect.width;
+                    }
+                    if (newTop > containerRect.height - boxRect.height) {
+                        newTop = containerRect.height - boxRect.height;
+                    }
+
+                    // Применяем новые координаты
+                    box.style.left = newLeft + 'px';
+                    box.style.top = newTop + 'px';
+
+                    // Отображаем данные
+                    accelDataElem.textContent = `Акселерометр (X, Y): ${accelerometer.x.toFixed(2)}, ${accelerometer.y.toFixed(2)}`;
+                });
+
+                accelerometer.start();
+            } else {
+                accelDataElem.textContent = 'Акселерометр не поддерживается.';
+            }
+
+            // --- ГИРОСКОП ---
+            // Отвечает за вращение
+            if ('Gyroscope' in window) {
+                const gyroscope = new Gyroscope({ frequency: 60 });
+
+                gyroscope.addEventListener('error', event => {
+                    info.innerHTML += `<br>Ошибка гироскопа: ${event.error.name}`;
+                });
+
+                gyroscope.addEventListener('reading', () => {
+                    // Добавляем угловую скорость к текущему углу поворота.
+                    // gyro.z - вращение вокруг оси Z (перпендикулярно экрану)
+                    // Умножаем на 10 для большей заметности вращения
+                    currentRotation += gyroscope.z;
+
+                    // Применяем вращение к квадрату
+                    box.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
+
+                    // Отображаем данные
+                    gyroDataElem.textContent = `Гироскоп (Z): ${gyroscope.z.toFixed(2)}`;
+                });
+
+                gyroscope.start();
+            } else {
+                gyroDataElem.textContent = 'Гироскоп не поддерживается.';
+            }
         }
-        animate();
+
+        // --- Запрос разрешений ---
+        // Современные браузеры требуют явного действия пользователя для доступа к датчикам.
+        permissionButton.addEventListener('click', () => {
+            // Проверяем, есть ли уже разрешение (в Chrome может не понадобиться повторный запрос)
+            // и запрашиваем его, если это необходимо.
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                // Для Safari на iOS
+                DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            activateSensors();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Для Chrome на Android и других браузеров
+                activateSensors();
+            }
+        });
+
+        // Установка начальной позиции квадрата в px после загрузки страницы
+        window.onload = () => {
+            const containerRect = container.getBoundingClientRect();
+            const boxRect = box.getBoundingClientRect();
+            box.style.left = (containerRect.width / 2) + 'px';
+            box.style.top = (containerRect.height / 2) + 'px';
+        };
+
     </script>
-</body>
-
-</html> -->
-
-<!DOCTYPE html>
-<html>
-
-<head>
-    <meta charset="utf-8">
-    <title>Простой VR-пример</title>
-    <meta name="description" content="Простой VR-пример на A-Frame">
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-</head>
-
-<body>
-    <a-scene>
-        <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
-        <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
-        <a-cylinder position="1 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
-        <a-plane position="0 0 -4" rotation="-90 0 0" width="4" height="4" color="#7BC8A4"></a-plane>
-        <a-sky color="#ECECEC"></a-sky>
-    </a-scene>
 </body>
 
 </html>
