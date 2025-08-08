@@ -2,194 +2,31 @@
 <html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Демо датчиков: Акселерометр и Гироскоп</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            touch-action: none;
-            /* Отключает масштабирование по двойному тапу */
-        }
-
-        #container {
-            width: 90vw;
-            height: 60vh;
-            border: 2px solid #333;
-            position: relative;
-            background-color: #fff;
-            overflow: hidden;
-            /* Скрывает все, что выходит за границы */
-        }
-
-        #box {
-            width: 50px;
-            height: 50px;
-            background-color: #007bff;
-            position: absolute;
-            left: 50%;
-            /* Начальная позиция в центре */
-            top: 50%;
-            transform: translate(-50%, -50%);
-            /* Центрирование объекта */
-        }
-
-        #info {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        #permissionButton {
-            font-size: 1.2em;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            border: 1px solid #333;
-        }
-    </style>
+    <meta charset="utf-8">
+    <title>VR-пример с перемещением</title>
+    <meta name="description" content="VR-пример с перемещением на A-Frame">
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 </head>
 
 <body>
+    <a-scene>
+        <!-- Объекты в сцене -->
+        <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
+        <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
+        <a-cylinder position="1 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+        <a-sky color="#ECECEC"></a-sky>
 
-    <h1>Демо датчиков телефона</h1>
-    <div id="container">
-        <div id="box"></div>
-    </div>
-    <div id="info">
-        <p>Нажмите кнопку, чтобы активировать датчики.</p>
-        <div id="accel-data">Акселерометр (X, Y): 0, 0</div>
-        <div id="gyro-data">Гироскоп (Z): 0</div>
-    </div>
+        <!-- Обертка для камеры (Camera Rig) с контроллером движения -->
+        <a-entity id="cameraRig" movement-controls="speed: 0.15;">
+            <!-- Камера с курсором внутри -->
+            <a-entity camera position="0 1.6 0" look-controls>
+                <a-cursor></a-cursor>
+            </a-entity>
+        </a-entity>
 
-    <button id="permissionButton">Активировать датчики</button>
-
-    <script>
-        const box = document.getElementById('box');
-        const container = document.getElementById('container');
-        const permissionButton = document.getElementById('permissionButton');
-        const info = document.getElementById('info');
-        const accelDataElem = document.getElementById('accel-data');
-        const gyroDataElem = document.getElementById('gyro-data');
-
-        let currentRotation = 0;
-
-        // Функция для запроса разрешений и запуска датчиков
-        function activateSensors() {
-            // Скрываем кнопку после нажатия
-            permissionButton.style.display = 'none';
-            info.innerHTML = "<p>Наклоняйте и вращайте телефон.</p>";
-
-            // --- АКСЕЛЕРОМЕТР ---
-            // Отвечает за перемещение
-            if ('Accelerometer' in window) {
-                const accelerometer = new Accelerometer({ frequency: 60 });
-
-                accelerometer.addEventListener('error', event => {
-                    info.innerHTML = `Ошибка акселерометра: ${event.error.name}`;
-                });
-
-                accelerometer.addEventListener('reading', () => {
-                    // Получаем текущие координаты квадрата
-                    let left = parseFloat(box.style.left);
-                    let top = parseFloat(box.style.top);
-
-                    // Изменяем координаты на основе данных акселерометра.
-                    // Множитель (-1) инвертирует направление для более интуитивного управления.
-                    // Множитель (2) увеличивает чувствительность.
-                    let newLeft = left - accelerometer.x * 2;
-                    let newTop = top + accelerometer.y * 2;
-
-                    // Ограничиваем движение границами контейнера
-                    const containerRect = container.getBoundingClientRect();
-                    const boxRect = box.getBoundingClientRect();
-
-                    if (newLeft < 0) newLeft = 0;
-                    if (newTop < 0) newTop = 0;
-                    if (newLeft > containerRect.width - boxRect.width) {
-                        newLeft = containerRect.width - boxRect.width;
-                    }
-                    if (newTop > containerRect.height - boxRect.height) {
-                        newTop = containerRect.height - boxRect.height;
-                    }
-
-                    // Применяем новые координаты
-                    box.style.left = newLeft + 'px';
-                    box.style.top = newTop + 'px';
-
-                    // Отображаем данные
-                    accelDataElem.textContent = `Акселерометр (X, Y): ${accelerometer.x.toFixed(2)}, ${accelerometer.y.toFixed(2)}`;
-                });
-
-                accelerometer.start();
-            } else {
-                accelDataElem.textContent = 'Акселерометр не поддерживается.';
-            }
-
-            // --- ГИРОСКОП ---
-            // Отвечает за вращение
-            if ('Gyroscope' in window) {
-                const gyroscope = new Gyroscope({ frequency: 60 });
-
-                gyroscope.addEventListener('error', event => {
-                    info.innerHTML += `<br>Ошибка гироскопа: ${event.error.name}`;
-                });
-
-                gyroscope.addEventListener('reading', () => {
-                    // Добавляем угловую скорость к текущему углу поворота.
-                    // gyro.z - вращение вокруг оси Z (перпендикулярно экрану)
-                    // Умножаем на 10 для большей заметности вращения
-                    currentRotation += gyroscope.z;
-
-                    // Применяем вращение к квадрату
-                    box.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
-
-                    // Отображаем данные
-                    gyroDataElem.textContent = `Гироскоп (Z): ${gyroscope.z.toFixed(2)}`;
-                });
-
-                gyroscope.start();
-            } else {
-                gyroDataElem.textContent = 'Гироскоп не поддерживается.';
-            }
-        }
-
-        // --- Запрос разрешений ---
-        // Современные браузеры требуют явного действия пользователя для доступа к датчикам.
-        permissionButton.addEventListener('click', () => {
-            // Проверяем, есть ли уже разрешение (в Chrome может не понадобиться повторный запрос)
-            // и запрашиваем его, если это необходимо.
-            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-                // Для Safari на iOS
-                DeviceMotionEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            activateSensors();
-                        }
-                    })
-                    .catch(console.error);
-            } else {
-                // Для Chrome на Android и других браузеров
-                activateSensors();
-            }
-        });
-
-        // Установка начальной позиции квадрата в px после загрузки страницы
-        window.onload = () => {
-            const containerRect = container.getBoundingClientRect();
-            const boxRect = box.getBoundingClientRect();
-            box.style.left = (containerRect.width / 2) + 'px';
-            box.style.top = (containerRect.height / 2) + 'px';
-        };
-
-    </script>
+    </a-scene>
 </body>
 
 </html>
